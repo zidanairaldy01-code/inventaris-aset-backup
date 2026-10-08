@@ -2,17 +2,12 @@
 set -e
 
 echo "Installing PHP dependencies..."
-composer install --no-dev --optimize-autoloader
+composer install --no-dev --optimize-autoloader --no-interaction
 
-echo "Generating application key..."
-php artisan key:generate --force
-
-echo "Caching configuration..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-echo "Running migrations..."
-php artisan migrate --force
+echo "Clearing caches..."
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan cache:clear
 
 echo "Build complete!"

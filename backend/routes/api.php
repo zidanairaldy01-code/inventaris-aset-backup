@@ -27,6 +27,14 @@ use App\Http\Controllers\Api\FotoSaranaPrasaranaController;
 use App\Http\Controllers\Api\WorkshopController;
 use Illuminate\Support\Facades\Route;
 
+// Health Check Endpoint untuk Railway/Monitoring
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toIso8601String(),
+        'database' => 'connected'
+    ]);
+});
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
