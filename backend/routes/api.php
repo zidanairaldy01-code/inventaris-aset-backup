@@ -36,6 +36,25 @@ Route::get('/health', function () {
     ]);
 });
 
+// Debug endpoint - test PHP + DB
+Route::get('/debug', function () {
+    try {
+        $dbCheck = \DB::connection()->getPdo() ? 'connected' : 'failed';
+    } catch (\Exception $e) {
+        $dbCheck = 'error: ' . $e->getMessage();
+    }
+    
+    return response()->json([
+        'php' => 'OK',
+        'laravel' => app()->version(),
+        'database' => $dbCheck,
+        'env' => [
+            'APP_ENV' => config('app.env'),
+            'DB_CONNECTION' => config('database.default'),
+        ]
+    ]);
+});
+
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 // Public Routes for Directory
