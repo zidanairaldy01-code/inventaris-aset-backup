@@ -1,0 +1,72 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use App\Models\FolderInventaris;
+
+class SaranaPrasarana extends Model
+{
+    protected $table = 'sarana_prasaranas';
+
+    protected $fillable = [
+        'tanggal_pengambilan',
+        'kode',
+        'nama_barang',
+        'satuan',
+        'luas_jumlah',
+        'stok_awal',
+        'stok_masuk',
+        'stok_keluar',
+        'stok_akhir',
+        'nilai_harga_pembelian',
+        'nilai_harga_sekarang',
+        'kondisi',
+        'foto_kerusakan',
+        'keterangan',
+        'id_user',
+        'id_folder',
+    ];
+
+    protected $casts = [
+        'tanggal_pengambilan' => 'date',
+    ];
+
+    protected $appends = ['foto_kerusakan_url'];
+
+    public function getFotoKerusakanUrlAttribute(): ?string
+    {
+        if (!$this->foto_kerusakan) {
+            return null;
+        }
+        return \App\Helpers\StorageHelper::url($this->foto_kerusakan);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'id_user');
+    }
+
+    public function folder()
+    {
+        return $this->belongsTo(FolderInventaris::class, 'id_folder')->withTrashed();
+    }
+
+    public function fotos()
+    {
+        return $this->hasMany(\App\Models\FotoSaranaPrasarana::class, 'id_sarana_prasarana')->orderBy('urutan');
+    }
+
+    public function distribusiAset()
+    {
+        return $this->hasMany(\App\Models\DistribusiAset::class, 'sarana_prasarana_id');
+    }
+
+    // Auto calculate stok_akhir before saving
+    protected static function booted()
+    {
+        static::saving(function ($item) {
+            $item->stok_akhir = $item->stok_awal + $item->stok_masuk - $item->stok_keluar;
+        });
+    }
+}

@@ -1,0 +1,168 @@
+<?php
+
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\GedungController;
+use App\Http\Controllers\Api\RuanganController;
+use App\Http\Controllers\Api\SumberDanaController;
+use App\Http\Controllers\Api\KondisiController;
+use App\Http\Controllers\Api\AsetController;
+use App\Http\Controllers\Api\FotoAsetController;
+use App\Http\Controllers\Api\HistoryController;
+use App\Http\Controllers\Api\ServisController;
+use App\Http\Controllers\Api\PeminjamanController;
+use App\Http\Controllers\Api\LaporanController;
+use App\Http\Controllers\Api\JurusanController;
+use App\Http\Controllers\Api\KelasController;
+use App\Http\Controllers\Api\AsetPerKelasController;
+use App\Http\Controllers\Api\InventarisController;
+use App\Http\Controllers\Api\InventarisBarangController;
+use App\Http\Controllers\Api\FolderInventarisController;
+use App\Http\Controllers\Api\InventarisGudangController;
+use App\Http\Controllers\Api\SaranaPrasaranaController;
+use App\Http\Controllers\Api\DaftarBelanjaController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\DistribusiAsetController;
+use App\Http\Controllers\Api\NotifikasiController;
+use App\Http\Controllers\Api\FotoSaranaPrasaranaController;
+use App\Http\Controllers\Api\WorkshopController;
+use Illuminate\Support\Facades\Route;
+
+
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+
+// Public Routes for Directory
+Route::get('ruangans', [RuanganController::class, 'index']);
+Route::get('ruangans/{ruangan}', [RuanganController::class, 'show']);
+Route::get('asets', [AsetController::class, 'index']);
+Route::get('asets/{aset}', [AsetController::class, 'show']);
+Route::get('stats', [AsetController::class, 'publicStats']);
+Route::get('daftar-belanja/summary', [DaftarBelanjaController::class, 'summary']);
+Route::get('gedungs', [GedungController::class, 'index']);
+Route::get('sumber-danas', [SumberDanaController::class, 'index']);
+
+
+// Public Routes for Jurusan & Kelas (untuk halaman public)
+Route::get('jurusans', [JurusanController::class, 'index']);
+Route::get('jurusans/{id}', [JurusanController::class, 'show']);
+Route::get('jurusans/kode/{kode}', [JurusanController::class, 'getByKode']);
+Route::get('jurusans/{id}/kelas', [KelasController::class, 'getByJurusan']);
+Route::get('jurusans/{id}/kelas/{tingkat}', [KelasController::class, 'getByTingkat']);
+Route::get('aset-per-kelas/{id}', [AsetPerKelasController::class, 'getAsetByKelas']);
+Route::get('aset-per-kelas/summary/jurusan/{id}', [AsetPerKelasController::class, 'getSummaryByJurusan']);
+Route::get('aset-per-kelas/summary/kelas/{id}', [AsetPerKelasController::class, 'getSummaryByKelas']);
+
+// Public Routes for Workshop (untuk halaman public)
+Route::get('workshops', [WorkshopController::class, 'index']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'me']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/profile/password', [AuthController::class, 'updatePassword']);
+
+    Route::apiResource('gedungs', GedungController::class)->except(['index']);
+    Route::apiResource('ruangans', RuanganController::class)->except(['index', 'show']);
+    Route::apiResource('sumber-danas', SumberDanaController::class)->except(['index']);
+    Route::get('kondisis/aset-rusak', [KondisiController::class, 'asetRusak']);
+    Route::post('kondisis/lapor-kerusakan', [KondisiController::class, 'laporKondisi']);
+    Route::apiResource('kondisis', KondisiController::class);
+
+    Route::post('asets/import', [AsetController::class, 'importExcel']);
+    Route::post('asets/batch-delete', [AsetController::class, 'batchDelete']);
+    Route::post('asets/batch-store', [AsetController::class, 'batchStore']);
+    Route::apiResource('asets', AsetController::class)->except(['index', 'show']);
+    Route::post('/asets/{aset}/fotos', [FotoAsetController::class, 'store']);
+    Route::delete('/fotos/{foto}', [FotoAsetController::class, 'destroy']);
+
+    Route::apiResource('histories', HistoryController::class)->only(['index', 'show']);
+    Route::post('servises/{servis}', [ServisController::class, 'update']); // Support PUT via POST + _method for file uploads
+    Route::apiResource('servises', ServisController::class);
+    Route::get('peminjamans', [PeminjamanController::class, 'index']); // Dipindahkan ke auth untuk mendukung filter per wakapro
+    Route::apiResource('peminjamans', PeminjamanController::class)->except(['index']);
+
+    // Laporan
+    Route::get('laporan/aset',        [LaporanController::class, 'aset']);
+    Route::get('laporan/servis',      [LaporanController::class, 'servis']);
+    Route::get('laporan/peminjaman',  [LaporanController::class, 'peminjaman']);
+    Route::get('laporan/penerimaan',  [LaporanController::class, 'penerimaan']);
+
+    // Kelas Management (Admin only - CRUD)
+    Route::apiResource('kelas', KelasController::class);
+
+    // Inventaris
+    Route::post('inventaris/import', [InventarisController::class, 'importExcel']);
+    Route::post('inventaris/import-barang', [InventarisBarangController::class, 'importExcel']); // Format Barang (Kode Rekening + Kode Program)
+    Route::get('inventaris/summary', [InventarisController::class, 'summary']);
+    Route::apiResource('inventaris', InventarisController::class);
+    // Folder Inventaris (Trash, Restore, Force Delete, CRUD)
+    Route::get('folder-inventaris/trash', [FolderInventarisController::class, 'trash']);
+    Route::delete('folder-inventaris/trash/empty', [FolderInventarisController::class, 'emptyTrash']);
+    Route::post('folder-inventaris/{id}/restore', [FolderInventarisController::class, 'restore']);
+    Route::delete('folder-inventaris/{id}/force', [FolderInventarisController::class, 'forceDelete']);
+    Route::apiResource('folder-inventaris', FolderInventarisController::class);
+
+    // Workshop Management (Admin only - CRUD)
+    Route::get('workshops/admin', [WorkshopController::class, 'indexAdmin']);
+    Route::post('workshops', [WorkshopController::class, 'store']);
+    Route::get('workshops/{id}', [WorkshopController::class, 'show']);
+    Route::post('workshops/{id}', [WorkshopController::class, 'update']); // Support PUT via POST for file uploads
+    Route::delete('workshops/{id}', [WorkshopController::class, 'destroy']);
+
+    // Sarana Prasarana
+    Route::post('sarana-prasaranas/import', [SaranaPrasaranaController::class, 'importExcel']);
+    Route::post('sarana-prasaranas/batch-store', [SaranaPrasaranaController::class, 'batchStore']);
+    Route::get('sarana-prasaranas/summary', [SaranaPrasaranaController::class, 'summary']);
+    Route::apiResource('sarana-prasaranas', SaranaPrasaranaController::class);
+
+    // Foto Sarana Prasarana
+    Route::get('foto-sarana-prasarana/all', [FotoSaranaPrasaranaController::class, 'getAllPhotos']);
+    Route::get('foto-sarana-prasarana/search', [FotoSaranaPrasaranaController::class, 'searchSharedPhotos']);
+    Route::post('sarana-prasaranas/{id}/fotos', [FotoSaranaPrasaranaController::class, 'store']);
+    Route::post('sarana-prasaranas/{id}/fotos/use-shared', [FotoSaranaPrasaranaController::class, 'useSharedPhoto']);
+    Route::delete('foto-sarana-prasarana/{id}', [FotoSaranaPrasaranaController::class, 'destroy']);
+
+    // Inventaris Gudang (Tabel & System Terpisah)
+    Route::post('inventaris-gudang/import', [InventarisGudangController::class, 'importExcel']);
+    Route::post('inventaris-gudang/batch-store', [InventarisGudangController::class, 'batchStore']);
+    Route::get('inventaris-gudang/summary', [InventarisGudangController::class, 'summary']);
+    Route::apiResource('inventaris-gudang', InventarisGudangController::class);
+
+    // Daftar Belanja (Tabel & System Terpisah - Format Kode Rekening + Kode Program)
+    Route::post('daftar-belanja/batch-store', [DaftarBelanjaController::class, 'batchStore']);
+    Route::post('daftar-belanja/batch-delete', [DaftarBelanjaController::class, 'batchDelete']);
+    Route::apiResource('daftar-belanja', DaftarBelanjaController::class);
+
+    // Manajemen Pengguna (Khusus Super Admin)
+    Route::middleware('role:super_admin')->apiResource('users', UserController::class);
+
+    // Distribusi Aset, Surat Jalan & BAST
+    Route::get('stats/petugas', [DistribusiAsetController::class, 'statsPetugas']);
+    Route::get('stats/wakapro', [DistribusiAsetController::class, 'statsWakapro']);
+    Route::get('stats/wakasek', [DistribusiAsetController::class, 'statsWakasek']);
+    Route::get('workshop/inventaris', [DistribusiAsetController::class, 'inventarisWorkshop']);
+    Route::put('workshop/inventaris/{id}/kondisi', [DistribusiAsetController::class, 'updateKondisiInventaris']);
+    Route::get('workshop/pilih-barang', [DistribusiAsetController::class, 'pilihBarangWorkshop']);
+    
+    // IMPORTANT: Specific routes MUST come BEFORE parameterized routes
+    Route::get('distribusi-asets/search-barang', [DistribusiAsetController::class, 'searchBarang']);
+    Route::get('distribusi-asets/riwayat', [DistribusiAsetController::class, 'riwayat']);
+    Route::post('distribusi-asets/bulk', [DistribusiAsetController::class, 'bulkStore']);
+
+    
+    // General CRUD routes
+    Route::get('distribusi-asets', [DistribusiAsetController::class, 'index']);
+    Route::post('distribusi-asets', [DistribusiAsetController::class, 'store']);
+    
+    // Parameterized routes MUST come AFTER specific routes
+    Route::post('distribusi-asets/{id}/konfirmasi', [DistribusiAsetController::class, 'konfirmasi']);
+    Route::get('distribusi-asets/{id}/surat-jalan', [DistribusiAsetController::class, 'cetakSuratJalan']);
+    Route::get('distribusi-asets/{id}/bast', [DistribusiAsetController::class, 'cetakBast']);
+    // Cetak surat jalan untuk seluruh batch (berdasarkan nomor_pengiriman)
+    Route::get('distribusi-asets/bulk/{nomorPengiriman}/surat-jalan', [DistribusiAsetController::class, 'cetakSuratJalanBulk']);
+
+    // Notifikasi Sistem
+    Route::get('notifikasis', [NotifikasiController::class, 'index']);
+    Route::put('notifikasis/read-all', [NotifikasiController::class, 'markAllRead']);
+    Route::put('notifikasis/{id}/read', [NotifikasiController::class, 'markRead']);
+    Route::delete('notifikasis/{id}', [NotifikasiController::class, 'destroy']);
+});
